@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ document.title }} - FuturEd{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min. js"></script>
+<style>
+    body { overflow:  hidden; }
+    .navbar { padding: 0. 75rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+    <!-- Left:  PDF Viewer -->
+    <div class="workspace-pdf">
+        <div class="pdf-header">
+            <div class="flex items-center justify-between">
+                <h3 class="font-semibold" style="font-size: 0.875rem;">{{ document.title }}</h3>
+                <div class="flex items-center gap-2">
+                    <button id="zoom-out" class="btn btn-ghost btn-sm">-</button>
+                    <span id="zoom-level" class="text-sm text-muted">100%</span>
+                    <button id="zoom-in" class="btn btn-ghost btn-sm">+</button>
+                </div>
+            </div>
+        </div>
+        <div class="pdf-container">
+            <div id="pdf-viewer"></div>
+        </div>
+    </div>
+
+    <!-- Right: Tools Panel -->
+    <div class="workspace-tools">
+        <div class="tools-header">
+            <div class="tabs-list">
+                <button class="tab-trigger active" data-tab="summary">Summary</button>
+                <button class="tab-trigger" data-tab="flashcards">Flashcards</button>
+                <button class="tab-trigger" data-tab="quiz">Quiz</button>
+            </div>
+        </div>
+        
+        <div class="tools-content">
+            <!-- Summary Tab -->
+            <div class="tab-content active" id="tab-summary">
+                {% include 'core/components/summary.html' %}
+            </div>
+
+            <!-- Flashcards Tab -->
+            <div class="tab-content" id="tab-flashcards">
+                {% include 'core/components/flashcards. html' %}
+            </div>
+
+            <!-- Quiz Tab -->
+            <div class="tab-content" id="tab-quiz">
+                {% include 'core/components/quiz.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const DOCUMENT_ID = {{ document.id }};
+    const PDF_URL = '{{ document. file. url }}';
+</script>
+<script src="{% static 'js/app.js' %}"></script>
+{% endblock %}

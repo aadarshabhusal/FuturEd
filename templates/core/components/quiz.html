@@ -1,0 +1,66 @@
+<div id="quiz-container">
+    <!-- Initial State -->
+    <div id="quiz-initial">
+        <div class="empty-state">
+            <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9. 879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-. 203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-. 008z" />
+            </svg>
+            <h3 class="font-semibold mb-2">Take a Quiz</h3>
+            <p class="text-sm text-muted mb-4">Test your understanding with an AI-generated quiz. </p>
+        </div>
+        
+        <div style="max-width:  300px; margin: 0 auto;">
+            <label class="label">Number of questions</label>
+            <div class="input-group">
+                <input type="number" id="num-questions" class="input" value="5" min="1" max="15">
+                <button id="generate-quiz-btn" class="btn btn-primary">Start Quiz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="quiz-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Generating quiz questions... </p>
+    </div>
+
+    <!-- Quiz Display -->
+    <div id="quiz-display" class="hidden">
+        <div id="quiz-questions"></div>
+        
+        <div id="quiz-navigation" class="flex justify-between mt-6">
+            <button id="prev-question" class="btn btn-outline">Previous</button>
+            <button id="next-question" class="btn btn-primary">Next</button>
+            <button id="submit-quiz" class="btn btn-primary hidden">Submit Quiz</button>
+        </div>
+    </div>
+
+    <!-- Results State -->
+    <div id="quiz-results" class="hidden">
+        <div class="quiz-results">
+            <h2 class="font-semibold mb-2">Quiz Complete</h2>
+            <p class="results-score" id="quiz-score">0/0</p>
+            <p class="results-text" id="quiz-percentage">0% correct</p>
+            
+            <div class="flex justify-center gap-4 mt-6">
+                <button id="review-quiz" class="btn btn-outline">Review Answers</button>
+                <button id="new-quiz" class="btn btn-primary">New Quiz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review State -->
+    <div id="quiz-review" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Review Answers</h3>
+            <button id="back-to-results" class="btn btn-ghost btn-sm">Back to Results</button>
+        </div>
+        <div id="quiz-review-content"></div>
+    </div>
+
+    <!-- Error State -->
+    <div id="quiz-error" class="empty-state hidden">
+        <p class="text-sm" style="color: hsl(var(--destructive));" id="quiz-error-text"></p>
+        <button id="retry-quiz-btn" class="btn btn-outline mt-4">Try Again</button>
+    </div>
+</div>
