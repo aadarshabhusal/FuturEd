@@ -81,7 +81,7 @@
         <h2 class="recent-documents-title">Recent Documents</h2>
         <div class="document-list">
             {% for doc in recent_documents %}
-            <a href="{% url 'core: workspace' doc.id %}" class="document-item">
+            <a href="{% url 'core:workspace' doc.id %}" class="document-item">
                 <span class="document-name">{{ doc.title }}</span>
                 <span class="document-date">{{ doc.uploaded_at|date:"M d, Y" }}</span>
             </a>

@@ -47,10 +47,10 @@ class Quiz(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Quiz for {self. document.title}"
+        return f"Quiz for {self.document.title}"
 
 
-class QuizQuestion(models. Model):
+class QuizQuestion(models.Model):
     """Model to store quiz questions."""
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()

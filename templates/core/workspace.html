@@ -4,10 +4,62 @@
 {% block title %}{{ document.title }} - FuturEd{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min. js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-    body { overflow:  hidden; }
-    .navbar { padding: 0. 75rem 0; }
+    body { overflow: hidden; }
+    .navbar { padding: 0.75rem 0; }
+    
+    /* PDF Viewer Styles */
+    .pdf-viewer-wrapper {
+        display: flex;
+        flex-direction: column;
+        height:  100%;
+    }
+    
+    .pdf-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid hsl(var(--border));
+        background-color: hsl(var(--card));
+        flex-shrink: 0;
+    }
+    
+    .pdf-title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+    
+    .pdf-container {
+        flex:  1;
+        overflow: auto;
+        padding: 1rem;
+        background-color: hsl(var(--secondary));
+    }
+    
+    #pdf-viewer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    #pdf-viewer canvas {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        background-color: white;
+    }
+    
+    .page-wrapper {
+        position: relative;
+    }
+    
+    .page-number {
+        position: absolute;
+        bottom: -1. 5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.75rem;
+        color: hsl(var(--muted-foreground));
+    }
 </style>
 {% endblock %}
 
@@ -15,24 +67,33 @@
 <div class="workspace">
     <!-- Left:  PDF Viewer -->
     <div class="workspace-pdf">
-        <div class="pdf-header">
-            <div class="flex items-center justify-between">
-                <h3 class="font-semibold" style="font-size: 0.875rem;">{{ document.title }}</h3>
-                <div class="flex items-center gap-2">
-                    <button id="zoom-out" class="btn btn-ghost btn-sm">-</button>
-                    <span id="zoom-level" class="text-sm text-muted">100%</span>
-                    <button id="zoom-in" class="btn btn-ghost btn-sm">+</button>
-                </div>
-            </div>
-        </div>
-        <div class="pdf-container">
-            <div id="pdf-viewer"></div>
-        </div>
+        {% include 'core/components/pdf_viewer.html' %}
     </div>
 
     <!-- Right: Tools Panel -->
     <div class="workspace-tools">
         <div class="tools-header">
+            <!-- Status Indicator -->
+            <div id="status-bar" class="flex items-center justify-between mb-4" style="padding: 0.5rem 0.75rem; background:  hsl(var(--secondary)); border-radius: var(--radius); font-size: 0.75rem;">
+                <div class="flex items-center gap-2">
+                    <span id="ollama-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: {% if ollama_status.available %}#22c55e{% else %}#ef4444{% endif %};"></span>
+                    <span id="ollama-status-text">
+                        {% if ollama_status.available %}
+                            Ollama Connected
+                        {% else %}
+                            Ollama Disconnected
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    {% if text_extracted %}
+                        <span style="color: #22c55e;">Text Extracted</span>
+                    {% else %}
+                        <span style="color:  #ef4444;">No Text Found</span>
+                    {% endif %}
+                </div>
+            </div>
+            
             <div class="tabs-list">
                 <button class="tab-trigger active" data-tab="summary">Summary</button>
                 <button class="tab-trigger" data-tab="flashcards">Flashcards</button>
@@ -48,7 +109,7 @@
 
             <!-- Flashcards Tab -->
             <div class="tab-content" id="tab-flashcards">
-                {% include 'core/components/flashcards. html' %}
+                {% include 'core/components/flashcards.html' %}
             </div>
 
             <!-- Quiz Tab -->
@@ -58,12 +119,77 @@
         </div>
     </div>
 </div>
+
+<!-- Warning Modal for Ollama -->
+{% if not ollama_status.available %}
+<div id="ollama-warning-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100;">
+    <div class="card" style="max-width: 450px; margin: 1rem;">
+        <div class="card-header">
+            <h3 class="card-title">Ollama Not Connected</h3>
+            <p class="card-description">The AI service is not running.  Please start Ollama to use the AI features.</p>
+        </div>
+        <div class="card-content">
+            <div style="background: hsl(var(--secondary)); padding: 1rem; border-radius: var(--radius); font-family: monospace; font-size: 0.875rem;">
+                <p style="margin-bottom: 0.5rem; color: hsl(var(--muted-foreground));"># Start Ollama server: </p>
+                <p>ollama serve</p>
+                <br>
+                <p style="margin-bottom: 0.5rem; color: hsl(var(--muted-foreground));"># If model not installed:</p>
+                <p>ollama pull llava-llama3:8b</p>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="flex gap-2">
+                <button id="dismiss-warning" class="btn btn-outline" style="flex:  1;">Dismiss</button>
+                <button id="retry-connection" class="btn btn-primary" style="flex:  1;">Retry Connection</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     const DOCUMENT_ID = {{ document.id }};
-    const PDF_URL = '{{ document. file. url }}';
+    const PDF_URL = '{{ document.file.url }}';
+    const OLLAMA_AVAILABLE = {{ ollama_status.available|yesno:"true,false" }};
+    const TEXT_EXTRACTED = {{ text_extracted|yesno:"true,false" }};
 </script>
+<script src="{% static 'js/pdf-viewer.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
+
+{% if not ollama_status.available %}
+<script>
+    document.getElementById('dismiss-warning')?.addEventListener('click', () => {
+        document.getElementById('ollama-warning-modal').style.display = 'none';
+    });
+    
+    document.getElementById('retry-connection')?.addEventListener('click', async () => {
+        const btn = document.getElementById('retry-connection');
+        btn.textContent = 'Checking... ';
+        btn. disabled = true;
+        
+        try {
+            const response = await fetch('/api/ollama-status/');
+            const data = await response.json();
+            
+            if (data.available) {
+                location.reload();
+            } else {
+                btn.textContent = 'Still Disconnected';
+                setTimeout(() => {
+                    btn.textContent = 'Retry Connection';
+                    btn.disabled = false;
+                }, 2000);
+            }
+        } catch (e) {
+            btn.textContent = 'Error';
+            setTimeout(() => {
+                btn.textContent = 'Retry Connection';
+                btn.disabled = false;
+            }, 2000);
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/summary/<int:document_id>/', views.generate_summary, name='generate_summary'),
     path('api/flashcards/<int:document_id>/', views.generate_flashcards, name='generate_flashcards'),
     path('api/quiz/<int:document_id>/', views.generate_quiz, name='generate_quiz'),
+    path('api/ollama-status/', views.check_ollama_status, name='ollama_status'),
 ]

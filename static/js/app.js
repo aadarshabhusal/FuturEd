@@ -1,118 +1,154 @@
 // FuturEd - Main Application JavaScript
-
-// ===== PDF Viewer =====
-let pdfDoc = null;
-let currentScale = 1.0;
-
-async function initPDFViewer() {
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    try {
-        pdfDoc = await pdfjsLib. getDocument(PDF_URL).promise;
-        renderAllPages();
-    } catch (error) {
-        console.error('Error loading PDF:', error);
-        document.getElementById('pdf-viewer').innerHTML = '<p class="text-muted p-4">Error loading PDF</p>';
-    }
-}
-
-async function renderAllPages() {
-    const container = document.getElementById('pdf-viewer');
-    container.innerHTML = '';
-
-    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-        const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: currentScale });
-
-        const canvas = document.createElement('canvas');
-        canvas.style.display = 'block';
-        canvas.style.marginBottom = '10px';
-        canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-        
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        container.appendChild(canvas);
-
-        await page.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-    }
-}
-
-// Zoom controls
-document.getElementById('zoom-in')?.addEventListener('click', () => {
-    if (currentScale < 2.0) {
-        currentScale += 0.25;
-        document. getElementById('zoom-level').textContent = Math.round(currentScale * 100) + '%';
-        renderAllPages();
-    }
-});
-
-document.getElementById('zoom-out')?.addEventListener('click', () => {
-    if (currentScale > 0.5) {
-        currentScale -= 0.25;
-        document.getElementById('zoom-level').textContent = Math.round(currentScale * 100) + '%';
-        renderAllPages();
-    }
-});
+// Note: PDF Viewer is now in pdf-viewer.js
 
 // ===== Tabs =====
 document.querySelectorAll('.tab-trigger').forEach(trigger => {
     trigger.addEventListener('click', () => {
-        // Remove active from all triggers
         document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
-        // Add active to clicked trigger
         trigger.classList.add('active');
         
-        // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        // Show selected tab content
         const tabId = trigger. dataset.tab;
-        document.getElementById(`tab-${tabId}`).classList.add('active');
+        document. getElementById(`tab-${tabId}`).classList.add('active');
     });
 });
+
+// ===== Utility Functions =====
+function formatContent(text) {
+    if (!text) return '';
+    
+    let formatted = text
+        // Code blocks
+        .replace(/```([\s\S]*?)```/g, '<pre style="background: hsl(var(--secondary)); padding: 1rem; border-radius: var(--radius); overflow-x: auto; margin: 0. 5rem 0; font-size: 0.875rem;"><code>$1</code></pre>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code style="background: hsl(var(--secondary)); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">$1</code>')
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Headers (must be at line start)
+        .replace(/^### (.*?)$/gm, '<h4 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 1rem;">$1</h4>')
+        .replace(/^## (.*?)$/gm, '<h3 style="margin-top: 1.25rem; margin-bottom: 0.5rem; font-size: 1.125rem;">$1</h3>')
+        .replace(/^# (.*?)$/gm, '<h2 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.25rem;">$1</h2>')
+        // Bullet points
+        .replace(/^[\-\*] (.*?)$/gm, '<li style="margin-left:  1.5rem; margin-bottom: 0.25rem;">$1</li>')
+        // Numbered lists
+        .replace(/^\d+\. (.*?)$/gm, '<li style="margin-left: 1.5rem; margin-bottom: 0.25rem;">$1</li>')
+        // Line breaks
+        .replace(/\n\n/g, '</p><p style="margin-bottom:  0.75rem;">')
+        .replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph if not starting with a block element
+    if (! formatted.startsWith('<h') && !formatted.startsWith('<pre') && !formatted.startsWith('<li')) {
+        formatted = '<p style="margin-bottom:  0.75rem;">' + formatted + '</p>';
+    }
+    
+    return formatted;
+}
+
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        padding: 1rem 1.5rem;
+        background: ${type === 'error' ? '#fef2f2' :  'hsl(var(--card))'};
+        border:  1px solid ${type === 'error' ? '#fecaca' : 'hsl(var(--border))'};
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        max-width: 400px;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 0.75rem;">
+            <p style="color: ${type === 'error' ? '#dc2626' : 'inherit'}; margin:  0; font-size: 0.875rem; flex: 1;">${message}</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; cursor: pointer; padding: 0; color: hsl(var(--muted-foreground));">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
 
 // ===== Summary =====
 function showSummaryState(state) {
     ['initial', 'loading', 'content', 'error']. forEach(s => {
-        document.getElementById(`summary-${s}`).classList.toggle('hidden', s !== state);
+        const el = document.getElementById(`summary-${s}`);
+        if (el) el.classList.toggle('hidden', s !== state);
     });
 }
 
-async function generateSummary() {
+async function generateSummary(regenerate = false) {
+    if (typeof OLLAMA_AVAILABLE !== 'undefined' && ! OLLAMA_AVAILABLE) {
+        showNotification('Ollama is not connected. Please start Ollama and refresh the page.', 'error');
+        return;
+    }
+    
+    if (typeof TEXT_EXTRACTED !== 'undefined' && !TEXT_EXTRACTED) {
+        showNotification('No text could be extracted from this PDF.', 'error');
+        return;
+    }
+    
     showSummaryState('loading');
     
     try {
         const response = await fetch(`/api/summary/${DOCUMENT_ID}/`, {
             method:  'POST',
-            headers:  { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ regenerate: regenerate })
         });
         
         const data = await response.json();
         
-        if (data.success) {
-            document. getElementById('summary-content').innerHTML = formatContent(data.summary);
+        if (data. success) {
+            const contentEl = document.getElementById('summary-content');
+            contentEl. innerHTML = `
+                <div class="summary-text">${formatContent(data.summary)}</div>
+                <div style="margin-top:  1.5rem; padding-top: 1rem; border-top:  1px solid hsl(var(--border));">
+                    <button id="regenerate-summary-btn" class="btn btn-ghost btn-sm">Regenerate Summary</button>
+                </div>
+            `;
+            
+            document.getElementById('regenerate-summary-btn')?.addEventListener('click', () => generateSummary(true));
+            
             showSummaryState('content');
-            // Trigger MathJax to render any LaTeX
+            
+            // Trigger MathJax
             if (window.MathJax) {
                 MathJax.typesetPromise();
+            }
+            
+            if (data.cached) {
+                showNotification('Loaded cached summary.  Click "Regenerate" to create a new one.');
             }
         } else {
             document.getElementById('summary-error-text').textContent = data.error;
             showSummaryState('error');
         }
     } catch (error) {
-        document.getElementById('summary-error-text').textContent = 'Failed to connect to the server.';
+        console.error('Summary generation error:', error);
+        document.getElementById('summary-error-text').textContent = 'Failed to connect to the server. Please try again. ';
         showSummaryState('error');
     }
 }
 
-document.getElementById('generate-summary-btn')?.addEventListener('click', generateSummary);
-document.getElementById('retry-summary-btn')?.addEventListener('click', generateSummary);
+document.getElementById('generate-summary-btn')?.addEventListener('click', () => generateSummary(false));
+document.getElementById('retry-summary-btn')?.addEventListener('click', () => generateSummary(false));
 
 // ===== Flashcards =====
 let flashcards = [];
@@ -120,7 +156,8 @@ let currentCardIndex = 0;
 
 function showFlashcardsState(state) {
     ['initial', 'loading', 'display', 'error'].forEach(s => {
-        document.getElementById(`flashcards-${s}`).classList.toggle('hidden', s !== state);
+        const el = document.getElementById(`flashcards-${s}`);
+        if (el) el.classList.toggle('hidden', s !== state);
     });
 }
 
@@ -131,14 +168,16 @@ function displayCurrentCard() {
     document.getElementById('flashcard-question').innerHTML = formatContent(card.question);
     document.getElementById('flashcard-answer').innerHTML = formatContent(card.answer);
     document.getElementById('current-card').textContent = currentCardIndex + 1;
-    document. getElementById('total-cards').textContent = flashcards.length;
+    document.getElementById('total-cards').textContent = flashcards.length;
     
     // Reset flip state
-    document. getElementById('flashcard').classList.remove('flipped');
+    document.getElementById('flashcard').classList.remove('flipped');
     
     // Update navigation buttons
-    document.getElementById('prev-card').disabled = currentCardIndex === 0;
-    document.getElementById('next-card').disabled = currentCardIndex === flashcards.length - 1;
+    const prevBtn = document.getElementById('prev-card');
+    const nextBtn = document.getElementById('next-card');
+    if (prevBtn) prevBtn.disabled = currentCardIndex === 0;
+    if (nextBtn) nextBtn.disabled = currentCardIndex === flashcards.length - 1;
     
     // Trigger MathJax
     if (window. MathJax) {
@@ -147,7 +186,17 @@ function displayCurrentCard() {
 }
 
 async function generateFlashcards() {
-    const numCards = parseInt(document.getElementById('num-flashcards').value) || 5;
+    if (typeof OLLAMA_AVAILABLE !== 'undefined' && !OLLAMA_AVAILABLE) {
+        showNotification('Ollama is not connected. Please start Ollama and refresh the page.', 'error');
+        return;
+    }
+    
+    if (typeof TEXT_EXTRACTED !== 'undefined' && !TEXT_EXTRACTED) {
+        showNotification('No text could be extracted from this PDF.', 'error');
+        return;
+    }
+    
+    const numCards = parseInt(document.getElementById('num-flashcards')?.value) || 5;
     showFlashcardsState('loading');
     
     try {
@@ -160,7 +209,7 @@ async function generateFlashcards() {
         const data = await response.json();
         
         if (data.success) {
-            flashcards = data. flashcards;
+            flashcards = data.flashcards;
             currentCardIndex = 0;
             displayCurrentCard();
             showFlashcardsState('display');
@@ -169,7 +218,8 @@ async function generateFlashcards() {
             showFlashcardsState('error');
         }
     } catch (error) {
-        document. getElementById('flashcards-error-text').textContent = 'Failed to connect to the server.';
+        console.error('Flashcards generation error:', error);
+        document.getElementById('flashcards-error-text').textContent = 'Failed to connect to the server. ';
         showFlashcardsState('error');
     }
 }
@@ -180,7 +230,7 @@ document.getElementById('regenerate-flashcards-btn')?.addEventListener('click', 
     showFlashcardsState('initial');
 });
 
-// Flashcard navigation
+// Flashcard interactions
 document.getElementById('flashcard')?.addEventListener('click', () => {
     document.getElementById('flashcard').classList.toggle('flipped');
 });
@@ -199,14 +249,33 @@ document.getElementById('next-card')?.addEventListener('click', () => {
     }
 });
 
+// Keyboard navigation for flashcards
+document.addEventListener('keydown', (e) => {
+    const flashcardsTab = document.getElementById('tab-flashcards');
+    if (! flashcardsTab?. classList.contains('active')) return;
+    if (flashcards.length === 0) return;
+    
+    if (e.key === 'ArrowLeft' && currentCardIndex > 0) {
+        currentCardIndex--;
+        displayCurrentCard();
+    } else if (e.key === 'ArrowRight' && currentCardIndex < flashcards.length - 1) {
+        currentCardIndex++;
+        displayCurrentCard();
+    } else if (e. key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('flashcard').classList.toggle('flipped');
+    }
+});
+
 // ===== Quiz =====
 let quizQuestions = [];
 let currentQuestionIndex = 0;
 let userAnswers = [];
 
 function showQuizState(state) {
-    ['initial', 'loading', 'display', 'results', 'review', 'error'].forEach(s => {
-        document.getElementById(`quiz-${s}`).classList.toggle('hidden', s !== state);
+    ['initial', 'loading', 'display', 'results', 'review', 'error']. forEach(s => {
+        const el = document.getElementById(`quiz-${s}`);
+        if (el) el.classList.toggle('hidden', s !== state);
     });
 }
 
@@ -220,7 +289,7 @@ function displayCurrentQuestion() {
         const isSelected = userAnswers[currentQuestionIndex] === index;
         return `
             <div class="quiz-option ${isSelected ? 'selected' : ''}" data-index="${index}">
-                <span class="option-label">${String. fromCharCode(65 + index)}</span>
+                <span class="option-label">${String.fromCharCode(65 + index)}</span>
                 <span>${formatContent(option)}</span>
             </div>
         `;
@@ -238,15 +307,19 @@ function displayCurrentQuestion() {
     container.querySelectorAll('.quiz-option').forEach(option => {
         option.addEventListener('click', () => {
             container.querySelectorAll('.quiz-option').forEach(o => o.classList. remove('selected'));
-            option.classList. add('selected');
-            userAnswers[currentQuestionIndex] = parseInt(option.dataset. index);
+            option.classList.add('selected');
+            userAnswers[currentQuestionIndex] = parseInt(option.dataset.index);
         });
     });
     
     // Update navigation
-    document.getElementById('prev-question').classList.toggle('hidden', currentQuestionIndex === 0);
-    document.getElementById('next-question').classList.toggle('hidden', currentQuestionIndex === quizQuestions.length - 1);
-    document.getElementById('submit-quiz').classList.toggle('hidden', currentQuestionIndex !== quizQuestions.length - 1);
+    const prevBtn = document.getElementById('prev-question');
+    const nextBtn = document.getElementById('next-question');
+    const submitBtn = document.getElementById('submit-quiz');
+    
+    if (prevBtn) prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
+    if (nextBtn) nextBtn.classList.toggle('hidden', currentQuestionIndex === quizQuestions. length - 1);
+    if (submitBtn) submitBtn.classList.toggle('hidden', currentQuestionIndex !== quizQuestions.length - 1);
     
     // Trigger MathJax
     if (window.MathJax) {
@@ -270,20 +343,20 @@ function showQuizResults() {
 }
 
 function showQuizReview() {
-    const container = document. getElementById('quiz-review-content');
+    const container = document.getElementById('quiz-review-content');
     
     let reviewHtml = quizQuestions.map((question, qIndex) => {
         const userAnswer = userAnswers[qIndex];
         const isCorrect = userAnswer === question.correct_answer;
         
-        let optionsHtml = question. options.map((option, oIndex) => {
+        let optionsHtml = question.options.map((option, oIndex) => {
             let classes = 'quiz-option';
             if (oIndex === question.correct_answer) classes += ' correct';
-            else if (oIndex === userAnswer && ! isCorrect) classes += ' incorrect';
+            else if (oIndex === userAnswer && !isCorrect) classes += ' incorrect';
             
             return `
-                <div class="${classes}">
-                    <span class="option-label">${String. fromCharCode(65 + oIndex)}</span>
+                <div class="${classes}" style="cursor: default;">
+                    <span class="option-label">${String.fromCharCode(65 + oIndex)}</span>
                     <span>${formatContent(option)}</span>
                 </div>
             `;
@@ -291,7 +364,9 @@ function showQuizReview() {
         
         return `
             <div class="quiz-question" style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid hsl(var(--border));">
-                <p class="question-number">Question ${qIndex + 1} ${isCorrect ? '- Correct' : '- Incorrect'}</p>
+                <p class="question-number" style="color: ${isCorrect ? '#22c55e' :  '#ef4444'};">
+                    Question ${qIndex + 1} - ${isCorrect ? 'Correct' : 'Incorrect'}
+                </p>
                 <p class="question-text">${formatContent(question.question)}</p>
                 <div class="quiz-options">${optionsHtml}</div>
                 ${question.explanation ? `<div class="explanation"><strong>Explanation:</strong> ${formatContent(question.explanation)}</div>` : ''}
@@ -303,20 +378,30 @@ function showQuizReview() {
     showQuizState('review');
     
     // Trigger MathJax
-    if (window. MathJax) {
+    if (window.MathJax) {
         MathJax.typesetPromise();
     }
 }
 
 async function generateQuiz() {
-    const numQuestions = parseInt(document.getElementById('num-questions').value) || 5;
+    if (typeof OLLAMA_AVAILABLE !== 'undefined' && ! OLLAMA_AVAILABLE) {
+        showNotification('Ollama is not connected.  Please start Ollama and refresh the page. ', 'error');
+        return;
+    }
+    
+    if (typeof TEXT_EXTRACTED !== 'undefined' && ! TEXT_EXTRACTED) {
+        showNotification('No text could be extracted from this PDF.', 'error');
+        return;
+    }
+    
+    const numQuestions = parseInt(document.getElementById('num-questions')?.value) || 5;
     showQuizState('loading');
     
     try {
         const response = await fetch(`/api/quiz/${DOCUMENT_ID}/`, {
-            method:  'POST',
-            headers: { 'Content-Type':  'application/json' },
-            body: JSON.stringify({ num_questions: numQuestions })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ num_questions:  numQuestions })
         });
         
         const data = await response.json();
@@ -328,11 +413,12 @@ async function generateQuiz() {
             displayCurrentQuestion();
             showQuizState('display');
         } else {
-            document.getElementById('quiz-error-text').textContent = data. error;
+            document.getElementById('quiz-error-text').textContent = data.error;
             showQuizState('error');
         }
     } catch (error) {
-        document.getElementById('quiz-error-text').textContent = 'Failed to connect to the server.';
+        console.error('Quiz generation error:', error);
+        document.getElementById('quiz-error-text').textContent = 'Failed to connect to the server. ';
         showQuizState('error');
     }
 }
@@ -361,29 +447,16 @@ document.getElementById('new-quiz')?.addEventListener('click', () => {
     showQuizState('initial');
 });
 
-// ===== Utility Functions =====
-function formatContent(text) {
-    if (!text) return '';
-    
-    // Convert markdown-style formatting to HTML
-    let formatted = text
-        // Bold
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        // Italic
-        .replace(/\*(.*? )\*/g, '<em>$1</em>')
-        // Line breaks
-        .replace(/\n/g, '<br>')
-        // Headers
-        .replace(/^### (.*?)$/gm, '<h4>$1</h4>')
-        .replace(/^## (.*?)$/gm, '<h3>$1</h3>')
-        .replace(/^# (.*?)$/gm, '<h2>$1</h2>');
-    
-    return formatted;
-}
-
-// ===== Initialize =====
-document. addEventListener('DOMContentLoaded', () => {
-    if (typeof PDF_URL !== 'undefined') {
-        initPDFViewer();
+// ===== CSS Animations =====
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
-});
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);

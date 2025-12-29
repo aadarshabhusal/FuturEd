@@ -96,4 +96,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Ollama Configuration
 OLLAMA_BASE_URL = 'http://localhost:11434'
-OLLAMA_MODEL = 'llava-llama3:8b'
+OLLAMA_MODEL = 'llama3.2:1b'
